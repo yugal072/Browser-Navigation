@@ -1,3 +1,0 @@
-whatsapp.com,Whatsapp
-facebook.com,facebook
-vscode.com,vss

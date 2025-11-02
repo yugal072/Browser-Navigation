@@ -1,6 +1,0 @@
-SNAPSHOT:1762024421,New tab created
-TAB:1,empty
-END
-SNAPSHOT:1762024441,Visited: vss
-TAB:1,vscode.com
-END
