@@ -256,6 +256,24 @@ public:
         currentTabIndex = 0;
         cout << "\n🔄 Session restored! " << tabs.size() << " tabs reopened.\n";
     }
+
+
+
+
+    void searchBookmarks(string keyword) {
+        cout << "\n========= Bookmark Search: " << keyword << " =========\n";
+        int count = 0;
+        for (auto& [url, page] : bookmarks) {
+            if (page.url.find(keyword) != string::npos || 
+                page.title.find(keyword) != string::npos) {
+                cout << "- " << page.title << " (" << page.url << ")\n";
+                count++;
+            }
+        }
+        if (count == 0) cout << "No bookmarks found.\n";
+        else cout << count << " bookmarks found.\n";
+        cout << "===============================================\n";
+    }
 };
 
 #endif
