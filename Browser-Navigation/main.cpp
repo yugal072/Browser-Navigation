@@ -12,7 +12,6 @@ int main() {
         cout << "9. New Tab  \n10. View Tabs  \n11. Switch Tab  \n12. Close Tab\n";
         cout << "13. Save Session  \n14. Session History  \n15. Restore Session\n";
         cout << "0. Exit \nChoice: ";
-        
         cin >> choice;
         cin.ignore();
 
@@ -22,7 +21,7 @@ int main() {
                 cout << "Title: "; getline(cin, title);
                 browser.visitPage(url, title);
                 break;
-
+                
             case 2: browser.goBack(); break;
             case 3: browser.goForward(); break;
             case 4: browser.addBookmark(); break;
