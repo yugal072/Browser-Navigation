@@ -29,27 +29,51 @@ private:
         }
     }
 
-    void captureSessionSnapshot(string desc, bool force = false) {
-        time_t now = time(nullptr);
-        
-        // Only capture if forced OR enough time passed
-        if (!force && (now - lastSnapshotTime) < SNAPSHOT_INTERVAL) {
-            return;  // Skip this snapshot
-        }
-        
+    void captureSessionSnapshot(const string& desc) {
         SessionSnapshot snapshot(desc);
-        for (auto tab : tabs)
-            snapshot.tabData.push_back({tab->id, 
-                tab->currentPage.url.empty() ? "empty" : tab->currentPage.url});
-        
-        sessionHistory.push_back(snapshot);
-        lastSnapshotTime = now;
-        
-        // Keep only recent snapshots
-        if (sessionHistory.size() > MAX_SNAPSHOTS) {
-            sessionHistory.erase(sessionHistory.begin());
+
+        for (auto tab : tabs) {
+            string tabRecord;
+
+            // --- Back stack (oldest to newest) ---
+            vector<Page> backHistory;
+            {
+                stack<Page> temp = tab->backStack;
+                while (!temp.empty()) {
+                    backHistory.push_back(temp.top());
+                    temp.pop();
+                }
+                reverse(backHistory.begin(), backHistory.end());
+            }
+
+            // Add all pages from back history
+            for (size_t i = 0; i < backHistory.size(); ++i) {
+                tabRecord += backHistory[i].url;
+                tabRecord += " -> ";
+            }
+
+            // --- Current page ---
+            if (!tab->currentPage.url.empty())
+                tabRecord += tab->currentPage.url;
+            else
+                tabRecord += "[empty]";
+
+            // --- Forward stack (optional) ---
+            {
+                stack<Page> temp = tab->forwardStack;
+                while (!temp.empty()) {
+                    tabRecord += " -> " + temp.top().url;
+                    temp.pop();
+                }
+            }
+
+            snapshot.tabData.push_back({tab->id, tabRecord});
         }
+
+        sessionHistory.push_back(snapshot);
+        cout << "Captured snapshot: " << snapshot.tabData.size() << " tabs.\n";
     }
+
 
 public:
     Browser() : currentTabIndex(-1), nextTabId(1), historyHead(nullptr) {
@@ -62,6 +86,8 @@ public:
     }
 
     ~Browser() {
+        captureSessionSnapshot("Auto-saved on exit");
+
         FileManager::saveHistory(historyHead);
         FileManager::saveBookmarks(bookmarks);
         FileManager::saveVisitCount(visitCount);
@@ -74,7 +100,7 @@ public:
         tabs.push_back(new Tab(nextTabId++));
         currentTabIndex = tabs.size() - 1;
         cout << "\n New tab created (Tab #" << tabs.back()->id << ")\n";
-        captureSessionSnapshot("New tab ", true);
+        captureSessionSnapshot("New tab created");
     }
 
     void switchTab(int index) {
@@ -123,7 +149,7 @@ public:
         addToHistory(tab->currentPage);
         visitCount[url]++;
         cout << "\n Now visiting: " << title << " (" << url << ") in Tab #" << tab->id << "\n";
-        captureSessionSnapshot("Visited: " + title);
+        
     }
 
     void goBack() {
