@@ -12,6 +12,7 @@ struct Page {
     time_t timestamp;
     Page() {}
     Page(string u, string t) : url(u), title(t), timestamp(time(nullptr)) {}
+
 };
 
 struct HistoryNode {
@@ -26,6 +27,7 @@ struct Tab {
     stack<Page> backStack, forwardStack;
     Tab(int tabId) : id(tabId) {}
 };
+
 
 struct SessionSnapshot {
     time_t timestamp;

@@ -15,6 +15,10 @@ private:
     HistoryNode* historyHead;
     vector<SessionSnapshot> sessionHistory;
 
+    static const int MAX_SNAPSHOTS = 20;
+    time_t lastSnapshotTime = 0;
+    static const int SNAPSHOT_INTERVAL = 300;  // 5 minutes
+
     void addToHistory(Page p) {
         HistoryNode* node = new HistoryNode(p);
         if (!historyHead) historyHead = node;
@@ -25,11 +29,26 @@ private:
         }
     }
 
-    void captureSessionSnapshot(string desc) {
+    void captureSessionSnapshot(string desc, bool force = false) {
+        time_t now = time(nullptr);
+        
+        // Only capture if forced OR enough time passed
+        if (!force && (now - lastSnapshotTime) < SNAPSHOT_INTERVAL) {
+            return;  // Skip this snapshot
+        }
+        
         SessionSnapshot snapshot(desc);
         for (auto tab : tabs)
-            snapshot.tabData.push_back({tab->id, tab->currentPage.url.empty() ? "empty" : tab->currentPage.url});
+            snapshot.tabData.push_back({tab->id, 
+                tab->currentPage.url.empty() ? "empty" : tab->currentPage.url});
+        
         sessionHistory.push_back(snapshot);
+        lastSnapshotTime = now;
+        
+        // Keep only recent snapshots
+        if (sessionHistory.size() > MAX_SNAPSHOTS) {
+            sessionHistory.erase(sessionHistory.begin());
+        }
     }
 
 public:
@@ -54,17 +73,17 @@ public:
     void createNewTab() {
         tabs.push_back(new Tab(nextTabId++));
         currentTabIndex = tabs.size() - 1;
-        cout << "\n📑 New tab created (Tab #" << tabs.back()->id << ")\n";
-        captureSessionSnapshot("New tab created");
+        cout << "\n New tab created (Tab #" << tabs.back()->id << ")\n";
+        captureSessionSnapshot("New tab ", true);
     }
 
     void switchTab(int index) {
         if (index < 0 || index >= tabs.size()) {
-            cout << "\n⚠️ Invalid tab index!\n";
+            cout << "\n Invalid tab index!\n";
             return;
         }
         currentTabIndex = index;
-        cout << "\n🔄 Switched to Tab #" << tabs[index]->id;
+        cout << "\n Switched to Tab #" << tabs[index]->id;
         if (!tabs[index]->currentPage.url.empty())
             cout << " - " << tabs[index]->currentPage.title;
         cout << "\n";
@@ -72,7 +91,7 @@ public:
 
     void closeCurrentTab() {
         if (tabs.size() == 1) {
-            cout << "\n⚠️ Cannot close the last tab!\n";
+            cout << "\n Cannot close the last tab!\n";
             return;
         }
         cout << "\n🗙 Closing Tab #" << tabs[currentTabIndex]->id << "\n";
@@ -103,47 +122,47 @@ public:
         tab->currentPage = Page(url, title);
         addToHistory(tab->currentPage);
         visitCount[url]++;
-        cout << "\n🌐 Now visiting: " << title << " (" << url << ") in Tab #" << tab->id << "\n";
+        cout << "\n Now visiting: " << title << " (" << url << ") in Tab #" << tab->id << "\n";
         captureSessionSnapshot("Visited: " + title);
     }
 
     void goBack() {
         Tab* tab = tabs[currentTabIndex];
         if (tab->backStack.empty()) {
-            cout << "\n⚠️ No previous page!\n";
+            cout << "\n No previous page!\n";
             return;
         }
         tab->forwardStack.push(tab->currentPage);
         tab->currentPage = tab->backStack.top();
         tab->backStack.pop();
-        cout << "\n⬅️ Back to: " << tab->currentPage.title << "\n";
+        cout << "\n⬅ Back to: " << tab->currentPage.title << "\n";
     }
 
     void goForward() {
         Tab* tab = tabs[currentTabIndex];
         if (tab->forwardStack.empty()) {
-            cout << "\n⚠️ No forward page!\n";
+            cout << "\n No forward page!\n";
             return;
         }
         tab->backStack.push(tab->currentPage);
         tab->currentPage = tab->forwardStack.top();
         tab->forwardStack.pop();
-        cout << "\n➡️ Forward to: " << tab->currentPage.title << "\n";
+        cout << "\nForward to: " << tab->currentPage.title << "\n";
     }
 
     void addBookmark() {
         Tab* tab = tabs[currentTabIndex];
         if (tab->currentPage.url.empty()) {
-            cout << "\n⚠️ No active page to bookmark.\n";
+            cout << "\n No active page to bookmark.\n";
             return;
         }
         bookmarks[tab->currentPage.url] = tab->currentPage;
-        cout << "\n🔖 Bookmarked: " << tab->currentPage.title << "\n";
+        cout << "\n Bookmarked: " << tab->currentPage.title << "\n";
     }
 
     void viewBookmarks() {
         if (bookmarks.empty()) {
-            cout << "\n📑 No bookmarks.\n";
+            cout << "\n No bookmarks.\n";
             return;
         }
         cout << "\n========= Bookmarks =========\n";
@@ -218,7 +237,7 @@ public:
 
     void restoreSession(int index) {
         if (index < 0 || index >= sessionHistory.size()) {
-            cout << "\n⚠️ Invalid snapshot index!\n";
+            cout << "\n Invalid snapshot index!\n";
             return;
         }
         for (auto tab : tabs) delete tab;
