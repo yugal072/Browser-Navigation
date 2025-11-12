@@ -1,0 +1,57 @@
+SNAPSHOT:1762180007,New tab 
+TAB:1,empty
+END
+SNAPSHOT:1762180256,Visited: Youtube
+TAB:1,youtube.com
+END
+SNAPSHOT:1762180326,Visited: Youtube
+TAB:1,youtube.com 
+END
+SNAPSHOT:1762180948,Visited: chess
+TAB:1,chess.com
+END
+SNAPSHOT:1762181230,Visited: chess
+TAB:1,timer.com -> chess.com
+END
+SNAPSHOT:1762181640,Visited: 
+TAB:1,timer.com -> chess.com -> a.com
+END
+SNAPSHOT:1762181664,Visited: A
+TAB:1,a.com -> a.com
+END
+SNAPSHOT:1762181889,Visited: A
+TAB:1,c.com -> a.com
+END
+SNAPSHOT:1762182336,Visited: P
+TAB:1,p.com
+END
+SNAPSHOT:1762182348,Visited: Q
+TAB:1,q.com
+END
+SNAPSHOT:1762182356,Visited: R
+TAB:1,r.com
+END
+SNAPSHOT:1762182361,PQR
+TAB:1,r.com
+END
+SNAPSHOT:1762182535,XYZ
+TAB:1,r.com -> x.com -> y.com -> z.com
+END
+SNAPSHOT:1762182843,Auto-saved on exit
+TAB:1,z.com -> notebooklm.com -> chat.com -> parse.com
+END
+SNAPSHOT:1762199390,Auto-saved on exit
+TAB:1,parse.com
+END
+SNAPSHOT:1762547355,Auto-saved on exit
+TAB:1,parse.com -> whatsapp.com -> youtube.com -> zapier.com -> youtube.com -> whatsapp.com
+END
+SNAPSHOT:1762547406,Auto-saved on exit
+TAB:1,whatsapp.com
+END
+SNAPSHOT:1762547798,Auto-saved on exit
+TAB:1,whatsapp.com
+END
+SNAPSHOT:1762547932,Auto-saved on exit
+TAB:1,whatsapp.com
+END

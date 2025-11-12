@@ -5,6 +5,10 @@
 #include "fileManager.h"
 #include <iostream>
 #include <algorithm>
+#include <vector>
+#include <unordered_map>
+#include <stack>
+using namespace std;
 
 class Browser {
 private:
@@ -19,6 +23,7 @@ private:
     time_t lastSnapshotTime = 0;
     static const int SNAPSHOT_INTERVAL = 300;  // 5 minutes
 
+    // ------------------ Helper Functions ------------------
     void addToHistory(Page p) {
         HistoryNode* node = new HistoryNode(p);
         if (!historyHead) historyHead = node;
@@ -35,7 +40,7 @@ private:
         for (auto tab : tabs) {
             string tabRecord;
 
-            // --- Back stack (oldest to newest) ---
+            // Back stack (oldest to newest)
             vector<Page> backHistory;
             {
                 stack<Page> temp = tab->backStack;
@@ -46,19 +51,18 @@ private:
                 reverse(backHistory.begin(), backHistory.end());
             }
 
-            // Add all pages from back history
             for (size_t i = 0; i < backHistory.size(); ++i) {
                 tabRecord += backHistory[i].url;
                 tabRecord += " -> ";
             }
 
-            // --- Current page ---
+            // Current page
             if (!tab->currentPage.url.empty())
                 tabRecord += tab->currentPage.url;
             else
                 tabRecord += "[empty]";
 
-            // --- Forward stack (optional) ---
+            // Forward stack
             {
                 stack<Page> temp = tab->forwardStack;
                 while (!temp.empty()) {
@@ -74,8 +78,48 @@ private:
         cout << "Captured snapshot: " << snapshot.tabData.size() << " tabs.\n";
     }
 
+    // ------------------ Divide & Conquer Section ------------------
+    void merge(vector<Page>& arr, int left, int mid, int right) {
+        vector<Page> L(arr.begin() + left, arr.begin() + mid + 1);
+        vector<Page> R(arr.begin() + mid + 1, arr.begin() + right + 1);
+        int i = 0, j = 0, k = left;
+
+        while (i < L.size() && j < R.size()) {
+            if (L[i].title < R[j].title)
+                arr[k++] = L[i++];
+            else
+                arr[k++] = R[j++];
+        }
+
+        while (i < L.size()) arr[k++] = L[i++];
+        while (j < R.size()) arr[k++] = R[j++];
+    }
+
+    void mergeSort(vector<Page>& arr, int left, int right) {
+        if (left < right) {
+            int mid = (left + right) / 2;
+            mergeSort(arr, left, mid);
+            mergeSort(arr, mid + 1, right);
+            merge(arr, left, mid, right);
+        }
+    }
+
+    int binarySearch(vector<Page>& arr, string key) {
+        int left = 0, right = arr.size() - 1;
+        while (left <= right) {
+            int mid = (left + right) / 2;
+            if (arr[mid].title == key)
+                return mid;
+            else if (arr[mid].title < key)
+                left = mid + 1;
+            else
+                right = mid - 1;
+        }
+        return -1;
+    }
 
 public:
+    // ------------------ Constructor & Destructor ------------------
     Browser() : currentTabIndex(-1), nextTabId(1), historyHead(nullptr) {
         historyHead = FileManager::loadHistory();
         FileManager::loadBookmarks(bookmarks);
@@ -87,7 +131,6 @@ public:
 
     ~Browser() {
         captureSessionSnapshot("Auto-saved on exit");
-
         FileManager::saveHistory(historyHead);
         FileManager::saveBookmarks(bookmarks);
         FileManager::saveVisitCount(visitCount);
@@ -96,6 +139,7 @@ public:
         for (auto tab : tabs) delete tab;
     }
 
+    // ------------------ Core Browser Features ------------------
     void createNewTab() {
         tabs.push_back(new Tab(nextTabId++));
         currentTabIndex = tabs.size() - 1;
@@ -149,7 +193,6 @@ public:
         addToHistory(tab->currentPage);
         visitCount[url]++;
         cout << "\n Now visiting: " << title << " (" << url << ") in Tab #" << tab->id << "\n";
-        
     }
 
     void goBack() {
@@ -176,6 +219,7 @@ public:
         cout << "\nForward to: " << tab->currentPage.title << "\n";
     }
 
+    // ------------------ Bookmarks with Divide & Conquer ------------------
     void addBookmark() {
         Tab* tab = tabs[currentTabIndex];
         if (tab->currentPage.url.empty()) {
@@ -191,15 +235,44 @@ public:
             cout << "\n No bookmarks.\n";
             return;
         }
-        cout << "\n========= Bookmarks =========\n";
+
+        vector<Page> sortedBookmarks;
         for (auto& b : bookmarks)
-            cout << "- " << b.second.title << " (" << b.second.url << ")\n";
-        cout << "=============================\n";
+            sortedBookmarks.push_back(b.second);
+
+        mergeSort(sortedBookmarks, 0, sortedBookmarks.size() - 1);
+
+        cout << "\n========= Sorted Bookmarks =========\n";
+        for (auto& p : sortedBookmarks)
+            cout << "- " << p.title << " (" << p.url << ")\n";
+        cout << "====================================\n";
     }
 
+    void searchBookmarks(string title) {
+        if (bookmarks.empty()) {
+            cout << "\n No bookmarks to search.\n";
+            return;
+        }
+
+        vector<Page> sortedBookmarks;
+        for (auto& b : bookmarks)
+            sortedBookmarks.push_back(b.second);
+
+        mergeSort(sortedBookmarks, 0, sortedBookmarks.size() - 1);
+        int index = binarySearch(sortedBookmarks, title);
+
+        cout << "\n========= Bookmark Search =========\n";
+        if (index != -1)
+            cout << " Found: " << sortedBookmarks[index].title << " (" << sortedBookmarks[index].url << ")\n";
+        else
+            cout << " Bookmark not found.\n";
+        cout << "===================================\n";
+    }
+
+    // ------------------ Other Features ------------------
     void viewHistory() {
         if (!historyHead) {
-            cout << "\n📜 No browsing history.\n";
+            cout << "\n No browsing history.\n";
             return;
         }
         cout << "\n========= Browsing History =========\n";
@@ -213,7 +286,7 @@ public:
 
     void showMostVisited() {
         if (visitCount.empty()) {
-            cout << "\n📊 No visit data.\n";
+            cout << "\n No visit data.\n";
             return;
         }
         vector<pair<string, int>> sorted(visitCount.begin(), visitCount.end());
@@ -223,7 +296,6 @@ public:
             cout << "- " << s.first << " (" << s.second << " visits)\n";
         cout << "=====================================\n";
     }
-
     void showCurrent() {
         Tab* tab = tabs[currentTabIndex];
         cout << "\n===== Current Tab #" << tab->id << " =====\n";
@@ -240,12 +312,12 @@ public:
         cout << "Enter session description: ";
         getline(cin, desc);
         captureSessionSnapshot(desc);
-        cout << "\n💾 Session snapshot saved!\n";
+        cout << "\n Session snapshot saved!\n";
     }
 
     void viewSessionHistory() {
         if (sessionHistory.empty()) {
-            cout << "\n📸 No session snapshots recorded.\n";
+            cout << "\n No session snapshots recorded.\n";
             return;
         }
         cout << "\n========= Session History =========\n";
@@ -280,25 +352,7 @@ public:
             if (td.first >= nextTabId) nextTabId = td.first + 1;
         }
         currentTabIndex = 0;
-        cout << "\n🔄 Session restored! " << tabs.size() << " tabs reopened.\n";
-    }
-
-
-
-
-    void searchBookmarks(string keyword) {
-        cout << "\n========= Bookmark Search: " << keyword << " =========\n";
-        int count = 0;
-        for (auto& [url, page] : bookmarks) {
-            if (page.url.find(keyword) != string::npos || 
-                page.title.find(keyword) != string::npos) {
-                cout << "- " << page.title << " (" << page.url << ")\n";
-                count++;
-            }
-        }
-        if (count == 0) cout << "No bookmarks found.\n";
-        else cout << count << " bookmarks found.\n";
-        cout << "===============================================\n";
+        cout << "\n Session restored! " << tabs.size() << " tabs reopened.\n";
     }
 };
 
